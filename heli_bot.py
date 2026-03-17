@@ -27,10 +27,7 @@ app = Flask(__name__)
 
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    data = {
-        "chat_id": CHAT_ID,
-        "text": message
-    }
+    data = {"chat_id": CHAT_ID, "text": message}
     response = requests.post(url, json=data, timeout=15)
     print("Telegram:", response.text)
 
@@ -100,7 +97,6 @@ def bot_loop():
 
             data = get_all_aircraft()
             aircraft_list = extract_aircraft_list(data)
-
             seen_hexes = set()
 
             for ac in aircraft_list:
@@ -109,7 +105,6 @@ def bot_loop():
                     continue
 
                 seen_hexes.add(hex_code)
-
                 reg_name = WATCHLIST[hex_code]
                 current_airborne = is_airborne(ac)
                 previous_airborne = last_status.get(hex_code, False)
@@ -138,6 +133,5 @@ def home():
 if __name__ == "__main__":
     thread = threading.Thread(target=bot_loop, daemon=True)
     thread.start()
-
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
