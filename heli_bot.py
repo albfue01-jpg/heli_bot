@@ -1,5 +1,8 @@
+import os
 import time
+import threading
 import requests
+from flask import Flask
 
 BOT_TOKEN = "8713579513:AAFb1KYvwrsJSBTweYCrnd3GuNhPtijdDyg"
 CHAT_ID = "5557087140"
@@ -18,6 +21,8 @@ WATCHLIST = {
 
 CHECK_EVERY_SECONDS = 20
 last_status = {}
+
+app = Flask(__name__)
 
 
 def send_telegram(message):
@@ -59,12 +64,12 @@ def is_airborne(ac):
 
     try:
         alt = float(alt)
-    except:
+    except Exception:
         alt = 0
 
     try:
         gs = float(gs)
-    except:
+    except Exception:
         gs = 0
 
     return alt >= 200 or gs >= 40
@@ -84,11 +89,15 @@ def build_message(ac, reg_name):
     )
 
 
-def main():
-    send_telegram("✅ Helikopterboten startade")
+def bot_loop():
+    started_message_sent = False
 
     while True:
         try:
+            if not started_message_sent:
+                send_telegram("✅ Helikopterboten startade på Render")
+                started_message_sent = True
+
             data = get_all_aircraft()
             aircraft_list = extract_aircraft_list(data)
 
@@ -96,10 +105,7 @@ def main():
 
             for ac in aircraft_list:
                 hex_code = (ac.get("hex") or ac.get("icao") or ac.get("icao24") or "").upper()
-                if not hex_code:
-                    continue
-
-                if hex_code not in WATCHLIST:
+                if not hex_code or hex_code not in WATCHLIST:
                     continue
 
                 seen_hexes.add(hex_code)
@@ -124,5 +130,14 @@ def main():
         time.sleep(CHECK_EVERY_SECONDS)
 
 
+@app.route("/")
+def home():
+    return "Heli bot is running"
+
+
 if __name__ == "__main__":
-    main()
+    thread = threading.Thread(target=bot_loop, daemon=True)
+    thread.start()
+
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
